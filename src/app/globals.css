@@ -1,26 +1,54 @@
 @import "tailwindcss";
 
+/*
+ * Palette locked to the brand's four colours plus two semantic tones.
+ * Sand is the single accent; mint means "saved", brick means "destructive".
+ * Radius scale (documented rule, applied everywhere):
+ *   controls (button, input, select) 8px · panels 12px · chips full pill.
+ */
+@theme {
+  --color-cream: #fff8e7;
+  --color-sand: #e8d5b5;
+  --color-ink: #32302b;
+  --color-mint: #dff2d7;
+
+  --color-surface: #ffffff;
+  --color-line: #e7dcc7;
+  --color-muted: #6f6a60;
+  --color-brick: #9c3b34;
+
+  --radius-control: 8px;
+  --radius-panel: 12px;
+
+  --font-display: var(--font-starleague);
+  --font-sans: var(--font-dm-sans);
+  --font-mono: var(--font-dm-mono);
+}
+
+/* The admin is a single-theme tool: locked light, no dark variant. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* One visible focus treatment for every interactive element. */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

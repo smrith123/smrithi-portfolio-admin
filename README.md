@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Smrithi Portfolio · Admin
 
-## Getting Started
+The content management panel behind the public portfolio. It talks to
+`smrithi-portfolio-backend` over its REST API and never touches the database
+directly.
 
-First, run the development server:
+## Running it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
+npm install
+npm run dev        # http://localhost:3001
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The backend must be running first. Sign in with the account created by the
+backend's `npm run seed`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | |
+| --- | --- |
+| `NEXT_PUBLIC_BACKEND_URL` | The API, including `/api`. Default `http://localhost:5000/api` |
+| `NEXT_PUBLIC_STOREFRONT_URL` | The public site, used by the "View on site" links |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Both are baked in at build time. `next build` refuses to run without them, and on
+Vercel it also refuses `localhost` values, so a production build cannot point at
+a developer's machine. After changing either one in Vercel, redeploy.
 
-## Learn More
+## Deploying to Vercel
 
-To learn more about Next.js, take a look at the following resources:
+Import this folder as its own Vercel project (framework Next.js, defaults
+otherwise), set the two variables above for Production, and deploy. The panel
+sends `X-Robots-Tag: noindex` and refuses to be framed. Add its origin to the
+backend's `CORS_ORIGIN`, or every request fails with "Can't reach the server".
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How it is put together
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The sidebar follows the public site from the top of the page down, so "where is
+this on the website" and "where do I edit it" are the same question.
 
-## Deploy on Vercel
+Every content screen is the same three lines:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```tsx
+const state = useSection<HeroSection>("home.hero");   // load, draft, dirty, save
+<SectionShell title="Hero" preview="/" state={state}> // header, errors, save bar
+  ...fields                                           // the only part that differs
+</SectionShell>
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`src/components/fields/` holds the shared inputs: `ImageField` and `FileField`
+(both open the media picker; uploads are checked against Cloudinary's size limits
+in `src/lib/uploads.ts` before anything is sent), `HeadingField`, `CtaField` and `ItemList` for any
+add / reorder / remove list. `src/lib/types.ts` mirrors the backend's section
+schemas.
+
+Display headings are stored as structured lines so the site can paint parts of
+them pink. The editor shows them as plain text instead: one line per row, and
+`*asterisks*` around anything that should be pink (`_underscores_` for the one
+card that is pink on mobile only). `src/lib/heading.ts` converts both ways and is
+covered by `npm test`.
+
+## Design
+
+Locked to the brand palette: `#32302B` ink, `#E8D5B5` sand, `#FFF8E7` cream,
+`#DFF2D7` mint for saved confirmations, plus one muted brick tone reserved for
+destructive actions. Sand is the only accent. Corner radii follow one rule:
+8px on controls, 12px on panels, full pill on status chips. Motion is limited to
+150ms colour transitions and the save bar sliding in. Single light theme.
+
+Fonts are the portfolio's own: Starleague for headings, DM Sans for the
+interface, DM Mono for ids and file names.
+
+## Authentication
+
+The JWT is kept in `localStorage` and sent as a bearer token. It lasts seven
+days, and changing the password signs out every other session. Signing out or an
+expired session triggers a full reload, so nothing from the previous session
+stays in memory. This is sized for one trusted operator; a panel opened to more
+people should move the token into an httpOnly cookie behind a route handler.
