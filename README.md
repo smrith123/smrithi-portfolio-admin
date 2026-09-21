@@ -12,8 +12,8 @@ npm install
 npm run dev        # http://localhost:3001
 ```
 
-The backend must be running first. Sign in with the account created by the
-backend's `npm run seed`.
+The backend must be running first. Sign in with the single admin account from
+the backend's `src/config/admin.ts` (or whatever its `ADMIN_*` variables set).
 
 | Variable | |
 | --- | --- |
@@ -71,7 +71,9 @@ interface, DM Mono for ids and file names.
 ## Authentication
 
 The JWT is kept in `localStorage` and sent as a bearer token. It lasts seven
-days, and changing the password signs out every other session. Signing out or an
-expired session triggers a full reload, so nothing from the previous session
+days. There is one admin account, set in the backend's configuration: the panel
+has no password reset and no way to change the password, so the Settings page
+only shows the account. Changing the password on the server signs out every
+session. Signing out or an expired session triggers a full reload, so nothing from the previous session
 stays in memory. This is sized for one trusted operator; a panel opened to more
 people should move the token into an httpOnly cookie behind a route handler.
