@@ -1,12 +1,12 @@
 "use client";
 
 import { SectionShell, useSection } from "@/components/SectionEditor";
-import { HeadingField, ImageField, ItemList } from "@/components/fields";
+import { HeadingField, ImageField, ItemList, VisibilityField } from "@/components/fields";
 import { Field, Input, Panel, Textarea } from "@/components/ui";
 import { newId } from "@/lib/heading";
 import type { Project, SectionHeading } from "@/lib/types";
 
-type Data = SectionHeading & { items: Project[] };
+type Data = SectionHeading & { visible?: boolean; items: Project[] };
 
 /** The three card colours the design uses. */
 const tints = [
@@ -28,6 +28,11 @@ export default function ProjectsPage() {
     >
       {data && (
         <>
+          <Panel title="Visibility">
+            {/* Content saved before this switch existed has no value and is shown. */}
+            <VisibilityField visible={data.visible !== false} onChange={(visible) => patch({ visible })} />
+          </Panel>
+
           <Panel title="Section heading">
             <Field label="Small label">
               <Input value={data.eyebrow} onChange={(e) => patch({ eyebrow: e.target.value })} />

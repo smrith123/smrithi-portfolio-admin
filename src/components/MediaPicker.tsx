@@ -1,15 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { UploadSimple, X } from "@phosphor-icons/react";
+import { Trash, UploadSimple, X } from "@phosphor-icons/react";
 import { ApiError, api } from "@/lib/api";
 import type { MediaAsset, MediaKind } from "@/lib/types";
 import { Button, EmptyState, ErrorNote, Skeleton, cn } from "./ui";
 import { ACCEPT, uploadProblem } from "@/lib/uploads";
 
 /**
- * One dialog for both halves of picking a file: upload a new one, or reuse
- * something already in the library. Native <dialog> gives focus trapping,
+ * One dialog for picking a file: upload a new one, reuse something already in
+ * the library, or delete one from it. Native <dialog> gives focus trapping,
  * Escape-to-close and the backdrop for free.
  */
 export function MediaPicker({
@@ -29,9 +29,16 @@ export function MediaPicker({
   const [assets, setAssets] = useState<MediaAsset[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  /** The file waiting for delete confirmation, shown in the footer. */
+  const [confirming, setConfirming] = useState<MediaAsset | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setAssets(null);
+    setError(null);
+    setNotice(null);
+    setConfirming(null);
     api
       .get<{ items: MediaAsset[] }>(`/admin/media?kind=${kind}&limit=100`)
       .then((r) => setAssets(r.items))
@@ -68,12 +75,34 @@ export function MediaPicker({
     }
   }
 
+  async function remove(asset: MediaAsset) {
+    setDeleting(true);
+    setError(null);
+    try {
+      await api.del(`/admin/media/${asset._id}`);
+      setAssets((list) => list?.filter((a) => a._id !== asset._id) ?? list);
+      setNotice(`Deleted ${asset.originalName}.`);
+    } catch (e) {
+      setError((e as ApiError).message);
+    } finally {
+      setDeleting(false);
+      setConfirming(null);
+    }
+  }
+
   const accept = ACCEPT[kind];
 
   return (
     <dialog
       ref={ref}
       onClose={onClose}
+      // Escape backs out of a pending delete first, and only then closes the dialog.
+      onCancel={(e) => {
+        if (confirming) {
+          e.preventDefault();
+          setConfirming(null);
+        }
+      }}
       onClick={(e) => e.target === ref.current && onClose()}
       className="m-auto w-[min(880px,92vw)] rounded-[--radius-panel] border border-line bg-cream p-0 text-ink backdrop:bg-ink/40"
     >
@@ -94,6 +123,7 @@ export function MediaPicker({
         </label>
 
         {error && <ErrorNote title={error} />}
+        {notice && !error && <p className="rounded-[--radius-control] bg-mint px-3 py-2 text-[13px]">{notice}</p>}
 
         <div className="max-h-[46vh] overflow-y-auto">
           {!assets && (
@@ -111,7 +141,7 @@ export function MediaPicker({
           {assets && assets.length > 0 && (
             <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4">
               {assets.map((asset) => (
-                <li key={asset._id}>
+                <li key={asset._id} className="group relative">
                   <button
                     type="button"
                     onClick={() => {
@@ -120,8 +150,9 @@ export function MediaPicker({
                     }}
                     title={asset.originalName}
                     className={cn(
-                      "group relative block w-full overflow-hidden rounded-[--radius-control] border border-line bg-surface",
-                      "aspect-square transition-colors duration-150 hover:border-ink",
+                      "relative block w-full overflow-hidden rounded-[--radius-control] border bg-surface",
+                      "aspect-square transition-[border-color,opacity] duration-150",
+                      confirming?._id === asset._id ? "border-brick opacity-60" : "border-line hover:border-ink",
                     )}
                   >
                     {asset.kind === "image" ? (
@@ -133,6 +164,27 @@ export function MediaPicker({
                       </span>
                     )}
                   </button>
+                  {/* A sibling, not a child, of the select button: buttons can't nest. Shown on hover or
+                      focus with a pointer, always on touch screens, which have no hover. */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setNotice(null);
+                      setConfirming(asset);
+                    }}
+                    aria-label={`Delete ${asset.originalName}`}
+                    title="Delete from the library"
+                    disabled={deleting}
+                    className={cn(
+                      "absolute top-2 right-2 flex size-8 items-center justify-center rounded-[--radius-control] border border-line bg-surface/95 text-muted",
+                      "transition-[color,opacity] duration-150 hover:text-brick focus-visible:opacity-100",
+                      "opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100",
+                      confirming?._id === asset._id && "text-brick opacity-100",
+                    )}
+                  >
+                    <Trash size={15} weight="bold" />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -140,11 +192,27 @@ export function MediaPicker({
         </div>
       </div>
 
-      <footer className="flex justify-end border-t border-line px-5 py-3">
-        <Button type="button" variant="ghost" onClick={onClose}>
-          Cancel
-        </Button>
-      </footer>
+      {confirming ? (
+        <footer className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-line px-5 py-3">
+          <p role="alert" className="min-w-0 text-[13px] text-ink">
+            Delete <span className="font-mono break-all">{confirming.originalName}</span>? It is removed for good.
+          </p>
+          <div className="ml-auto flex shrink-0 gap-2">
+            <Button type="button" variant="ghost" onClick={() => setConfirming(null)} disabled={deleting}>
+              Keep it
+            </Button>
+            <Button type="button" variant="danger" onClick={() => remove(confirming)} busy={deleting}>
+              {deleting ? "Deleting" : "Delete"}
+            </Button>
+          </div>
+        </footer>
+      ) : (
+        <footer className="flex justify-end border-t border-line px-5 py-3">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+        </footer>
+      )}
     </dialog>
   );
 }

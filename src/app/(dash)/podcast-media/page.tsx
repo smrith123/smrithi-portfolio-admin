@@ -1,12 +1,12 @@
 "use client";
 
 import { SectionShell, useSection } from "@/components/SectionEditor";
-import { FileField, HeadingField, ImageField, ItemList } from "@/components/fields";
+import { FileField, HeadingField, ImageField, ItemList, VisibilityField } from "@/components/fields";
 import { Field, Input, Panel } from "@/components/ui";
 import { newId } from "@/lib/heading";
 import type { MediaItem, SectionHeading } from "@/lib/types";
 
-type Data = SectionHeading & { items: MediaItem[] };
+type Data = SectionHeading & { visible?: boolean; items: MediaItem[] };
 
 export default function PodcastMediaPage() {
   const state = useSection<Data>("home.media");
@@ -21,6 +21,11 @@ export default function PodcastMediaPage() {
     >
       {data && (
         <>
+          <Panel title="Visibility">
+            {/* Content saved before this switch existed has no value and is shown. */}
+            <VisibilityField visible={data.visible !== false} onChange={(visible) => patch({ visible })} />
+          </Panel>
+
           <Panel title="Section heading">
             <Field label="Small label">
               <Input value={data.eyebrow} onChange={(e) => patch({ eyebrow: e.target.value })} />

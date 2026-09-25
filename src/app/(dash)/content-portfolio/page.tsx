@@ -48,9 +48,6 @@ export default function ContentPortfolioPage() {
                     </Field>
                   </div>
                   <ImageField label="Card image" value={piece.image} onChange={(image) => update({ image })} folder="portfolio" />
-                  <Field label="Link" hint="Optional. Leave empty if the card should not be clickable.">
-                    <Input value={piece.href ?? ""} onChange={(e) => update({ href: e.target.value || undefined })} />
-                  </Field>
                 </>
               )}
             />

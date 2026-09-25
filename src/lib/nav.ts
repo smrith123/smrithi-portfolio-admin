@@ -35,7 +35,6 @@ export const navGroups = [
       { href: "/submissions", label: "Contact submissions" },
       { href: "/media", label: "Media library" },
       { href: "/navigation", label: "Site menu" },
-      { href: "/settings", label: "Settings" },
     ],
   },
 ] as const;

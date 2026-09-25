@@ -3,7 +3,6 @@
 import { SectionShell, useSection } from "@/components/SectionEditor";
 import { CtaField, FileField, HeadingField, ImageField, ItemList } from "@/components/fields";
 import { Field, Input, Panel, Textarea } from "@/components/ui";
-import { newId } from "@/lib/heading";
 import type { CareerSection } from "@/lib/types";
 
 export default function CareerPage() {
@@ -29,13 +28,16 @@ export default function CareerPage() {
             />
           </Panel>
 
-          <Panel title="Fact cards" description="Each card is a short heading and one line of detail underneath.">
+          <Panel
+            title="Fact cards"
+            description="The three cards the design places beside the portrait. Each is a short heading and one line of detail underneath."
+          >
+            {/* Exactly three: the site puts each card in its own spot in the layout, so none can be added or removed. */}
             <ItemList
               items={data.cards}
               onChange={(cards) => patch({ cards })}
               itemTitle={(card, i) => card.lines.flat().map((p) => p.text).join(" ").trim() || `Card ${i + 1}`}
-              create={(): CareerSection["cards"][number] => ({ id: newId(), lines: [[{ text: "" }]], meta: "" })}
-              addLabel="Add card"
+              removable={false}
               renderItem={(card, update) => (
                 <>
                   <HeadingField label="Card heading" value={card.lines} onChange={(lines) => update({ lines })} rows={4} />

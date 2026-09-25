@@ -21,12 +21,12 @@ export default function NavigationPage() {
           title="Menu links"
           description="Use / for the home page, /#about to jump to a section, and /content for the content page."
         >
+          {/* A fixed set: each link can be edited and reordered, but none added or removed. */}
           <ItemList
             items={data.items}
             onChange={(items) => patch({ items })}
             itemTitle={(item, i) => item.label || `Link ${i + 1}`}
-            create={(): NavLink => ({ label: "", href: "/" })}
-            addLabel="Add link"
+            removable={false}
             renderItem={(item, update) => (
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Label">
