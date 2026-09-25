@@ -39,11 +39,17 @@ export function useSection<T>(key: string) {
 
   const save = useCallback(async () => {
     if (!data) return;
+    const sent = JSON.stringify(data);
     setSaving(true);
     setSaveError(null);
     try {
       const doc = await api.put<SectionDoc<T>>(`/admin/sections/${key}`, { data });
       setSaved(JSON.stringify(doc.data));
+      /* Adopt the server's copy as the draft too: it can differ from what was
+         sent only in key order or filled-in defaults (e.g. a newly added field),
+         which would otherwise leave a just-saved page reading as unsaved. Edits
+         made while the request was in flight are kept, and stay unsaved. */
+      setData((current) => (JSON.stringify(current) === sent ? doc.data : current));
       setToast("Saved. The website is updated.");
     } catch (e) {
       setSaveError(e as ApiError);

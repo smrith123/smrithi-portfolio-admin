@@ -36,7 +36,6 @@ export interface ContentPiece {
   number: string;
   label: string;
   image: string;
-  href?: string;
 }
 
 export type PlatformId = "instagram" | "tiktok" | "youtube";

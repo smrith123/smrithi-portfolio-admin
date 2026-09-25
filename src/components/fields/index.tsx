@@ -7,22 +7,60 @@ import { Button, Field, Input, Textarea, cn } from "@/components/ui";
 import { linesToText, textToLines } from "@/lib/heading";
 import type { Cta, HeadingLine, MediaAsset, MediaKind } from "@/lib/types";
 
+/* ---------------------------- visibility field ----------------------------- */
+
+/**
+ * Show / hide for an optional home section. It is part of the section's own
+ * content, so it saves with the Save bar like every other field.
+ */
+export function VisibilityField({ visible, onChange }: { visible: boolean; onChange: (visible: boolean) => void }) {
+  const option = (value: boolean, label: string) => (
+    <button
+      type="button"
+      aria-pressed={visible === value}
+      onClick={() => onChange(value)}
+      className={cn(
+        "rounded-[--radius-control] px-4 py-1.5 text-[13px] font-medium transition-colors duration-150",
+        visible === value ? "bg-ink text-cream" : "text-muted hover:bg-sand/35 hover:text-ink",
+      )}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div role="group" aria-label="Section visibility" className="inline-flex gap-1 rounded-[--radius-control] border border-line bg-cream p-1">
+        {option(true, "Show")}
+        {option(false, "Hide")}
+      </div>
+      <p className="text-[13px] text-muted">
+        {visible
+          ? "Shown on the home page."
+          : "Hidden from the public site. Everything below is kept, so showing it again restores it as it was."}
+      </p>
+    </div>
+  );
+}
+
 /* ------------------------------- image field ------------------------------- */
 
 export function ImageField({
   label,
   value,
   onChange,
-  onPick,
   hint,
   folder = "media",
   aspect = "aspect-[4/3]",
 }: {
   label: string;
   value: string;
-  onChange: (url: string) => void;
-  /** Receives the whole asset, for fields that also need its dimensions. */
-  onPick?: (asset: MediaAsset) => void;
+  /**
+   * One call per pick, with the whole asset for fields that also need its
+   * dimensions. Never split this into two callbacks: inside an ItemList both
+   * would update the same snapshot of the list, and the second would erase the first.
+   */
+  onChange: (url: string, asset: MediaAsset) => void;
   hint?: string;
   folder?: string;
   aspect?: string;
@@ -56,10 +94,7 @@ export function ImageField({
         kind="image"
         folder={folder}
         onClose={() => setPicking(false)}
-        onSelect={(asset) => {
-          onChange(asset.url);
-          onPick?.(asset);
-        }}
+        onSelect={(asset) => onChange(asset.url, asset)}
       />
     </div>
   );
@@ -171,6 +206,7 @@ export function ItemList<T>({
   addLabel = "Add item",
   min = 1,
   max,
+  removable = true,
 }: {
   items: T[];
   onChange: (items: T[]) => void;
@@ -180,6 +216,8 @@ export function ItemList<T>({
   addLabel?: string;
   min?: number;
   max?: number;
+  /** False for lists with a fixed set of items (no Add either: leave out `create`). */
+  removable?: boolean;
 }) {
   const move = (from: number, to: number) => {
     if (to < 0 || to >= items.length) return;
@@ -203,14 +241,16 @@ export function ItemList<T>({
                 <IconButton label="Move down" disabled={i === items.length - 1} onClick={() => move(i, i + 1)}>
                   <ArrowDown size={14} weight="bold" />
                 </IconButton>
-                <IconButton
-                  label="Remove"
-                  danger
-                  disabled={items.length <= min}
-                  onClick={() => onChange(items.filter((_, j) => j !== i))}
-                >
-                  <Trash size={14} weight="bold" />
-                </IconButton>
+                {removable && (
+                  <IconButton
+                    label="Remove"
+                    danger
+                    disabled={items.length <= min}
+                    onClick={() => onChange(items.filter((_, j) => j !== i))}
+                  >
+                    <Trash size={14} weight="bold" />
+                  </IconButton>
+                )}
               </div>
             </header>
             <div className="flex flex-col gap-4 p-4">
